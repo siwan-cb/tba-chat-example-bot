@@ -52,70 +52,99 @@ async function main() {
     await client.conversations.sync();
 
     console.log("👂 Listening for messages...");
-    const stream = await client.conversations.streamAllMessages();
-
-    for await (const message of stream) {
-      // Skip messages from the agent itself
-      if (!message || message.senderInboxId.toLowerCase() === client.inboxId.toLowerCase()) {
-        continue;
-      }
-
-      console.log(
-        `📨 Received: ${message.contentType?.typeId} from ${message.senderInboxId}`
-      );
-
-      const conversation = await client.conversations.getConversationById(
-        message.conversationId
-      );
-
-      if (!conversation) {
-        console.log("❌ Unable to find conversation, skipping");
-        continue;
-      }
-
-      // Get sender address
-      const inboxState = await client.preferences.inboxStateFromInboxIds([
-        message.senderInboxId,
-      ]);
-      const senderAddress = inboxState[0]?.identifiers[0]?.identifier;
-      
-      if (!senderAddress) {
-        console.log("❌ Unable to find sender address, skipping");
-        continue;
-      }
-
+    
+    // Keep the bot running with proper error handling
+    while (true) {
       try {
-        // Handle different message types
-        if (message.contentType?.typeId === "text") {
-          await handleTextMessage(
-            conversation,
-            message.content as string,
-            senderAddress,
-            agentAddress,
-            tokenHandler
-          );
-        } else if (message.contentType?.typeId === "transactionReference") {
-          console.log("🧾 Detected transaction reference message");
-          console.log("📋 Raw message content:", JSON.stringify(message.content, null, 2));
-          await handleTransactionReference(
-            conversation,
-            message.content as TransactionReference,
-            senderAddress,
-            tokenHandler
-          );
-        } else {
-          continue;
+        const stream = await client.conversations.streamAllMessages();
+
+        for await (const message of stream) {
+          try {
+            // Skip messages from the agent itself
+            if (!message || message.senderInboxId.toLowerCase() === client.inboxId.toLowerCase()) {
+              continue;
+            }
+
+            console.log(
+              `📨 Received: ${message.contentType?.typeId} from ${message.senderInboxId}`
+            );
+
+            const conversation = await client.conversations.getConversationById(
+              message.conversationId
+            );
+
+            if (!conversation) {
+              console.log("❌ Unable to find conversation, skipping");
+              continue;
+            }
+
+            // Get sender address
+            const inboxState = await client.preferences.inboxStateFromInboxIds([
+              message.senderInboxId,
+            ]);
+            const senderAddress = inboxState[0]?.identifiers[0]?.identifier;
+            
+            if (!senderAddress) {
+              console.log("❌ Unable to find sender address, skipping");
+              continue;
+            }
+
+            // Handle different message types
+            if (message.contentType?.typeId === "text") {
+              await handleTextMessage(
+                conversation,
+                message.content as string,
+                senderAddress,
+                agentAddress,
+                tokenHandler
+              );
+            } else if (message.contentType?.typeId === "transactionReference") {
+              console.log("🧾 Detected transaction reference message");
+              console.log("📋 Raw message content:", JSON.stringify(message.content, null, 2));
+              await handleTransactionReference(
+                conversation,
+                message.content as TransactionReference,
+                senderAddress,
+                tokenHandler
+              );
+            } else {
+              continue;
+            }
+          } catch (messageError: unknown) {
+            const errorMessage = messageError instanceof Error ? messageError.message : String(messageError);
+            console.error("❌ Error processing individual message:", errorMessage);
+            try {
+              const conversation = await client.conversations.getConversationById(
+                message?.conversationId || ""
+              );
+              if (conversation) {
+                await conversation.send(
+                  `❌ Error processing message: ${errorMessage}`
+                );
+              }
+            } catch (sendError) {
+              console.error("❌ Failed to send error message to conversation:", sendError);
+            }
+          }
         }
-      } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        console.error("❌ Error processing message:", errorMessage);
-        await conversation.send(
-          `❌ Error processing message: ${errorMessage}`
-        );
+      } catch (streamError: unknown) {
+        const errorMessage = streamError instanceof Error ? streamError.message : String(streamError);
+        console.error("❌ Stream error occurred:", errorMessage);
+        console.log("🔄 Attempting to reconnect in 5 seconds...");
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        
+        // Re-sync conversations before attempting to recreate stream
+        try {
+          await client.conversations.sync();
+          console.log("✅ Conversations re-synced successfully");
+        } catch (syncError) {
+          console.error("❌ Failed to sync conversations:", syncError);
+        }
       }
     }
   } catch (error) {
-    console.error("💥 Fatal error:", error);
+    console.error("💥 Initialization error:", error);
+    console.log("🔄 Bot failed to initialize. Please check your configuration and try again.");
     process.exit(1);
   }
 }
