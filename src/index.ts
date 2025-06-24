@@ -14,6 +14,16 @@ import {
   WalletSendCallsCodec,
 } from "@xmtp/content-type-wallet-send-calls";
 import { Client, type XmtpEnv } from "@xmtp/node-sdk";
+import {
+  ContentTypeActions,
+  ActionsCodec,
+  type ActionsContent,
+} from "./types/ActionsContent.js";
+import {
+  ContentTypeIntent,
+  IntentCodec,
+  type IntentContent,
+} from "./types/IntentContent.js";
 
 // Validate required environment variables
 const { WALLET_KEY, ENCRYPTION_KEY, XMTP_ENV, NETWORK_ID } = validateEnvironment([
@@ -39,7 +49,7 @@ async function main() {
     const client = await Client.create(signer, {
       dbEncryptionKey,
       env: XMTP_ENV as XmtpEnv,
-      codecs: [new WalletSendCallsCodec(), new TransactionReferenceCodec()],
+      codecs: [new WalletSendCallsCodec(), new TransactionReferenceCodec(), new ActionsCodec(), new IntentCodec()],
     });
 
     const identifier = await signer.getIdentifier();
@@ -105,6 +115,16 @@ async function main() {
                 conversation,
                 message.content as TransactionReference,
                 senderAddress,
+                tokenHandler
+              );
+            } else if (message.contentType?.typeId === "intent") {
+              console.log("🎯 Detected intent message");
+              console.log("📋 Raw intent content:", JSON.stringify(message.content, null, 2));
+              await handleIntentMessage(
+                conversation,
+                message.content as IntentContent,
+                senderAddress,
+                agentAddress,
                 tokenHandler
               );
             } else {
@@ -266,28 +286,30 @@ function getExplorerUrl(txHash: string, networkId: string): string {
 }
 
 async function handleHelpCommand(conversation: any, tokenHandler: TokenHandler) {
-  const networkInfo = tokenHandler.getNetworkInfo();
-  
-  const helpMessage = `🤖 TBA Chat Example Bot
+  const actionsContent: ActionsContent = {
+    id: `help-${Date.now()}`,
+    description: "Glad to help you out! Here are some actions you can take:",
+    actions: [
+      {
+        id: "send-small",
+        label: "/send 0.005 USDC",
+        style: "primary"
+      },
+      {
+        id: "send-large", 
+        label: "/send 1 usdc",
+        style: "secondary"
+      },
+      {
+        id: "check-balance",
+        label: "/checkBalance",
+        style: "secondary"
+      }
+    ]
+  };
 
-COMMANDS:
-• /send <AMOUNT> <TOKEN> - Send tokens to bot
-• /balance <TOKEN> - Check bot balance  
-• /info - Network information
-• /help - Show this help
-
-EXAMPLES:
-• /send 0.1 USDC
-• /send 0.01 ETH
-• /balance USDC
-
-Current Network: ${networkInfo.name}
-Supported Tokens: ${networkInfo.supportedTokens.join(", ")}
-
-💡 Uses XMTP wallet send calls for secure transactions
-📋 Can also receive transaction references you share`;
-
-  await conversation.send(helpMessage);
+  console.log("🎯 Sending inline actions help message");
+  await conversation.send(actionsContent, ContentTypeActions);
 }
 
 async function handleSendCommand(
@@ -396,10 +418,65 @@ ${availableNetworks.map(net => `• ${net}`).join("\n")}
 CONTENT TYPES:
 • Wallet Send Calls (EIP-5792)
 • Transaction Reference
+• Inline Actions
 
 🔗 Test at: https://xmtp.chat`;
 
   await conversation.send(infoMessage);
+}
+
+async function handleIntentMessage(
+  conversation: any,
+  intentContent: IntentContent,
+  senderAddress: string,
+  agentAddress: string,
+  tokenHandler: TokenHandler
+) {
+  console.log(`🎯 Processing intent: ${intentContent.actionId} for actions: ${intentContent.id}`);
+
+  try {
+    switch (intentContent.actionId) {
+      case "send-small":
+        console.log("💸 Processing small USDC send request");
+        await handleSendCommand(
+          conversation,
+          "/send 0.005 USDC",
+          senderAddress,
+          agentAddress,
+          tokenHandler
+        );
+        break;
+      
+      case "send-large":
+        console.log("💸 Processing large USDC send request");
+        await handleSendCommand(
+          conversation,
+          "/send 1 USDC",
+          senderAddress,
+          agentAddress,
+          tokenHandler
+        );
+        break;
+      
+      case "check-balance":
+        console.log("💰 Processing balance check request");
+        await handleBalanceCommand(
+          conversation,
+          "/balance USDC",
+          agentAddress,
+          tokenHandler
+        );
+        break;
+      
+      default:
+        await conversation.send(`❌ Unknown action: ${intentContent.actionId}`);
+        console.log(`❌ Unknown action ID: ${intentContent.actionId}`);
+    }
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("❌ Error processing intent:", errorMessage);
+    await conversation.send(`❌ Error processing action: ${errorMessage}`);
+  }
 }
 
 // Handle graceful shutdown
