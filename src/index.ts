@@ -20,7 +20,6 @@ import {
   type ActionsContent,
 } from "./types/ActionsContent.js";
 import {
-  ContentTypeIntent,
   IntentCodec,
   type IntentContent,
 } from "./types/IntentContent.js";
@@ -178,22 +177,35 @@ async function handleTextMessage(
 ) {
   const command = messageContent.toLowerCase().trim();
 
-  if (command === "/help" || command === "help") {
-    await handleHelpCommand(conversation, tokenHandler);
-  } else if (command.startsWith("/send ")) {
-    await handleSendCommand(
-      conversation,
-      command,
-      senderAddress,
-      agentAddress,
-      tokenHandler
-    );
-  } else if (command.startsWith("/balance ")) {
-    await handleBalanceCommand(conversation, command, agentAddress, tokenHandler);
-  } else if (command === "/info") {
-    await handleInfoCommand(conversation, tokenHandler);
-  } else {
-    return;
+  switch (true) {
+    case command.startsWith("/actions"):
+      await handleActionsCommand(conversation, tokenHandler);
+      break;
+
+    case command.startsWith("/actions-with-images"):
+      await handleActionsWithImagesCommand(conversation, tokenHandler);
+      break;
+    
+    case command.startsWith("/send "):
+      await handleSendCommand(
+        conversation,
+        command,
+        senderAddress,
+        agentAddress,
+        tokenHandler
+      );
+      break;
+    
+    case command.startsWith("/balance "):
+      await handleBalanceCommand(conversation, command, agentAddress, tokenHandler);
+      break;
+    
+    case command === "/info":
+      await handleInfoCommand(conversation, tokenHandler);
+      break;
+    
+    default:
+      return;
   }
 }
 
@@ -285,25 +297,55 @@ function getExplorerUrl(txHash: string, networkId: string): string {
   }
 }
 
-async function handleHelpCommand(conversation: any, tokenHandler: TokenHandler) {
+async function handleActionsCommand(conversation: any, tokenHandler: TokenHandler) {
   const actionsContent: ActionsContent = {
     id: `help-${Date.now()}`,
     description: "Glad to help you out! Here are some actions you can take:",
     actions: [
       {
         id: "send-small",
-        label: "/send 0.005 USDC",
-        style: "primary"
+        label: "Send 0.005 USDC",
+        style: "primary",
       },
       {
         id: "send-large", 
-        label: "/send 1 usdc",
-        style: "secondary"
+        label: "Send 1 usdc",
+        style: "primary",
       },
       {
         id: "check-balance",
-        label: "/checkBalance",
-        style: "secondary"
+        label: "Check balance",
+        style: "primary",
+      }
+    ]
+  };
+
+  console.log("🎯 Sending inline actions help message");
+  await conversation.send(actionsContent, ContentTypeActions);
+}
+
+async function handleActionsWithImagesCommand(conversation: any, tokenHandler: TokenHandler) {
+  const actionsContent: ActionsContent = {
+    id: `help-${Date.now()}`,
+    description: "Glad to help you out! Here are some actions you can take with images:",
+    actions: [
+      {
+        id: "send-small",
+        label: "Send 0.005 USDC",
+        style: "primary",
+        imageUrl: "https://cataas.com/cat"
+      },
+      {
+        id: "send-large", 
+        label: "Send 1 usdc",
+        style: "primary",
+        imageUrl: "https://cataas.com/cat"
+      },
+      {
+        id: "check-balance",
+        label: "Check balance",
+        style: "primary",
+        imageUrl: "https://cataas.com/cat"
       }
     ]
   };
