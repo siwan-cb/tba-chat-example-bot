@@ -2,6 +2,17 @@
 
 An advanced XMTP agent demonstrating **wallet send calls**, **transaction reference content types**, and **interactive inline actions**. This bot showcases cutting-edge blockchain messaging integration using EIP-5792 standard and XIP-67 inline actions specification.
 
+## 💬 Try the Live Agent
+
+**Interact with our live agent now:** **`tbachat.base.eth`** 
+
+- **Message the agent directly**: Open [XMTP Chat](https://xmtp.chat) or any XMTP-compatible app
+- **Send to**: `tbachat.base.eth` 
+- **Start with**: `/help` to see all available commands and interactive actions
+- **Test features**: Send tokens, check balances, and explore interactive buttons!
+
+*No setup required - just start chatting with our live agent to see all the features in action.*
+
 ## 🚀 Features
 
 - **Multi-token Support**: Send ETH, USDC, and other tokens

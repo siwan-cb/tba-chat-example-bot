@@ -224,6 +224,8 @@ export class TokenHandler {
               amount: amountInDecimals,
               decimals: token.decimals,
               networkId: this.networkConfig.id,
+              hostname: "https://tba.chat",
+              faviconUrl: "https://tba-chat-example-bot-production.up.railway.app/favicon.ico",
             },
           },
         ],
