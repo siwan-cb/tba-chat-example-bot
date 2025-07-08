@@ -3,6 +3,10 @@ import { createPublicClient, formatUnits, http, toHex } from "viem";
 import { base, baseSepolia, mainnet, sepolia } from "viem/chains";
 import type { NetworkConfig, TokenConfig, SendCallsRequest } from "../types/tokens.js";
 
+const hostname = "tba.chat";
+const faviconUrl =  "https://www.google.com/s2/favicons?sz=256&domain_url=https%3A%2F%2Fwww.coinbase.com%2Fwallet";
+const title = "TBA Chat Agent"
+
 // ERC20 minimal ABI for balance checking
 const erc20Abi = [
   {
@@ -198,6 +202,11 @@ export class TokenHandler {
               amount: amountInDecimals,
               decimals: token.decimals,
               networkId: this.networkConfig.id,
+              ...(request.includeMetadata ? {
+                hostname,
+                faviconUrl,
+                title
+              } : {})
             },
           },
         ],
@@ -224,8 +233,11 @@ export class TokenHandler {
               amount: amountInDecimals,
               decimals: token.decimals,
               networkId: this.networkConfig.id,
-              hostname: "https://tba.chat",
-              faviconUrl: "https://tba-chat-example-bot-production.up.railway.app/favicon.ico",
+              ...(request.includeMetadata ? {
+                hostname,
+                faviconUrl,
+                title
+              } : {})
             },
           },
         ],

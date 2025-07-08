@@ -61,7 +61,8 @@ export async function handleSendCommand(
   command: string,
   senderAddress: string,
   agentAddress: string,
-  tokenHandler: TokenHandler
+  tokenHandler: TokenHandler,
+  includeMetadata: boolean = false
 ) {
   const parts = command.split(" ");
   if (parts.length !== 3) {
@@ -89,6 +90,7 @@ export async function handleSendCommand(
       amount: amount,
       token: token,
       networkId: tokenHandler.getNetworkInfo().id,
+      includeMetadata
     });
 
     console.log(`💸 Created transfer request: ${amount} ${token} from ${senderAddress}`);
@@ -189,6 +191,18 @@ export async function handleIntentMessage(
       case "show-actions-with-images":
         console.log("🎯 Processing show actions with images request");
         await handleActionsWithImagesCommand(conversation, tokenHandler);
+        break;
+
+      case "transaction-with-metadata":
+        console.log("🎯 Processing transaction with metadata request");
+        await handleSendCommand(
+          conversation,
+          "/send 0.005 USDC",
+          senderAddress,
+          agentAddress,
+          tokenHandler,
+          true
+        );
         break;
       
       case "check-balance":

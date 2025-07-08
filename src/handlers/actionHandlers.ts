@@ -83,6 +83,11 @@ I'm here to help you interact with ${networkInfo.name} blockchain. I can help yo
         style: "primary",
       },
       {
+        id: "transaction-with-metadata",
+        label: "😉 Transaction with metadata", 
+        style: "primary",
+      },
+      {
         id: "check-balance",
         label: "💰 Check balance",
         style: "primary",

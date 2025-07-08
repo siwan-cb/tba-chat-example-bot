@@ -29,4 +29,5 @@ export interface SendCallsRequest {
   amount: number;
   token: string;
   networkId: string;
+  includeMetadata?: boolean;
 } 
