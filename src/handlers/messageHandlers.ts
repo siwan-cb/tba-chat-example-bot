@@ -21,7 +21,7 @@ export async function handleTextMessage(
   const command = messageContent.toLowerCase().trim();
 
   switch (true) {
-    case command === "/help":
+    case command === "/help" || command.toLowerCase() === "gm":
       await handleHelpCommand(conversation, tokenHandler);
       break;
 
