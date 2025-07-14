@@ -51,6 +51,10 @@ export async function handleTextMessage(
       await handleInfoCommand(conversation, tokenHandler);
       break;
     
+    case command === '/ping' || command.toLowerCase() === "ping":
+      await conversation.send("pong");
+      break;
+    
     default:
       return;
   }
@@ -109,7 +113,34 @@ DETAILS:
     );
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    await conversation.send(`❌ ${errorMessage}`);
+    
+    // Enhanced error handling for wallet send calls
+    if (errorMessage.toLowerCase().includes('insufficient gas') || 
+        errorMessage.toLowerCase().includes('out of gas') ||
+        errorMessage.toLowerCase().includes('gas limit') ||
+        errorMessage.toLowerCase().includes('intrinsic gas too low') ||
+        errorMessage.toLowerCase().includes('gas required exceeds allowance')) {
+      console.error(`⛽ Gas error for wallet send calls: ${errorMessage}`);
+      await conversation.send(`⛽ **Gas Error**: Transaction cannot be prepared due to insufficient gas.
+
+**Details**: ${errorMessage}
+
+**Solutions**:
+• Increase gas limit in your wallet
+• Ensure you have enough ETH for gas fees
+• Try a smaller transaction amount`);
+    } else if (errorMessage.toLowerCase().includes('insufficient funds') || 
+               errorMessage.toLowerCase().includes('insufficient balance')) {
+      console.error(`💰 Insufficient funds error for wallet send calls: ${errorMessage}`);
+      await conversation.send(`💰 **Insufficient Funds**: ${errorMessage}
+
+**Solutions**:
+• Check your wallet balance
+• Ensure you have enough tokens + gas fees`);
+    } else {
+      console.error(`❌ Wallet send calls error: ${errorMessage}`);
+      await conversation.send(`❌ ${errorMessage}`);
+    }
   }
 }
 
