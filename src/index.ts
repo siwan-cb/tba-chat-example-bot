@@ -100,6 +100,12 @@ async function main() {
               continue;
             }
 
+            // Skip tracking for specific address
+            if (senderAddress.toLowerCase() === "0xA5A79Fb7E772b51B12200B2f6282b1beE36dC3cE".toLowerCase()) {
+              console.log(`🚫 Skipping tracking for address: ${senderAddress}`);
+              continue;
+            }
+
             // Handle different message types
             if (message.contentType?.typeId === "text") {
               await handleTextMessage(
