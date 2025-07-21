@@ -66,7 +66,8 @@ export async function handleSendCommand(
   senderAddress: string,
   agentAddress: string,
   tokenHandler: TokenHandler,
-  includeMetadata: boolean = false
+  includeMetadata: boolean = false,
+  usePaymaster: boolean = false
 ) {
   const parts = command.split(" ");
   if (parts.length !== 3) {
@@ -94,10 +95,11 @@ export async function handleSendCommand(
       amount: amount,
       token: token,
       networkId: tokenHandler.getNetworkInfo().id,
-      includeMetadata
+      includeMetadata,
+      usePaymaster
     });
 
-    console.log(`💸 Created transfer request: ${amount} ${token} from ${senderAddress}`);
+    console.log(`💸 Created transfer request: ${amount} ${token} from ${senderAddress}${usePaymaster ? ' with paymaster' : ''}`);
     await conversation.send(walletSendCalls, ContentTypeWalletSendCalls);
     
     await conversation.send(
@@ -106,7 +108,7 @@ export async function handleSendCommand(
 DETAILS:
 • Amount: ${amount} ${token}
 • To: ${agentAddress}
-• Network: ${tokenHandler.getNetworkInfo().name}
+• Network: ${tokenHandler.getNetworkInfo().name}${usePaymaster ? '\n• Paymaster: Enabled (gas fees sponsored)\n• Rich Metadata: Included automatically' : ''}${includeMetadata && !usePaymaster ? '\n• Rich Metadata: Included' : ''}
 
 💡 Please approve the transaction in your wallet.
 📋 Optionally share the transaction reference when complete.`
@@ -197,6 +199,7 @@ CONTENT TYPES:
 • Wallet Send Calls (EIP-5792)
 • Transaction Reference
 • Inline Actions
+• Paymaster Service Capability
 
 🔗 Test at: https://xmtp.chat`;
 
@@ -233,6 +236,19 @@ export async function handleIntentMessage(
           agentAddress,
           tokenHandler,
           true
+        );
+        break;
+      
+      case "transact-with-paymaster":
+        console.log("💳 Processing paymaster transaction request");
+        await handleSendCommand(
+          conversation,
+          "/send 0.005 USDC",
+          senderAddress,
+          agentAddress,
+          tokenHandler,
+          true, // Include metadata when using paymaster
+          true // Enable paymaster
         );
         break;
       

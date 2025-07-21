@@ -88,6 +88,11 @@ I'm here to help you interact with ${networkInfo.name} blockchain. I can help yo
         style: "primary",
       },
       {
+        id: "transact-with-paymaster",
+        label: "💳 Paymaster + Metadata",
+        style: "primary",
+      },
+      {
         id: "check-balance",
         label: "💰 Check balance",
         style: "primary",

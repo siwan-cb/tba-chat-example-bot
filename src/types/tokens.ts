@@ -30,4 +30,5 @@ export interface SendCallsRequest {
   token: string;
   networkId: string;
   includeMetadata?: boolean;
+  usePaymaster?: boolean;
 } 

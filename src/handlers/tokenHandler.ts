@@ -6,6 +6,7 @@ import type { NetworkConfig, TokenConfig, SendCallsRequest } from "../types/toke
 const hostname = "tba.chat";
 const faviconUrl =  "https://www.google.com/s2/favicons?sz=256&domain_url=https%3A%2F%2Fwww.coinbase.com%2Fwallet";
 const title = "TBA Chat Agent"
+const paymasterUrl = "https://api.developer.coinbase.com/rpc/v1/base/DwomRfA4eBFEJgn4fZSwHjf934akZLtG"
 
 // ERC20 minimal ABI for balance checking
 const erc20Abi = [
@@ -184,12 +185,23 @@ export class TokenHandler {
     const token = this.getTokenConfig(request.token);
     const amountInDecimals = Math.floor(request.amount * Math.pow(10, token.decimals));
 
+    const capabilities = request.usePaymaster ? {
+      paymasterService: {
+        url: paymasterUrl,
+        optional: true
+      }
+    } : undefined;
+
+    // Automatically include metadata when using paymaster for richer transaction information
+    const shouldIncludeMetadata = request.includeMetadata || request.usePaymaster;
+
     if (token.symbol === "ETH" && token.address === "0x0000000000000000000000000000000000000000") {
       // Native ETH transfer
       return {
         version: "1.0",
         from: request.from as `0x${string}`,
         chainId: this.networkConfig.chainId,
+        ...(capabilities && { capabilities }),
         calls: [
           {
             to: request.to as `0x${string}`,
@@ -202,7 +214,7 @@ export class TokenHandler {
               amount: amountInDecimals,
               decimals: token.decimals,
               networkId: this.networkConfig.id,
-              ...(request.includeMetadata ? {
+              ...(shouldIncludeMetadata ? {
                 hostname,
                 faviconUrl,
                 title
@@ -222,6 +234,7 @@ export class TokenHandler {
         version: "1.0",
         from: request.from as `0x${string}`,
         chainId: this.networkConfig.chainId,
+        ...(capabilities && { capabilities }),
         calls: [
           {
             to: token.address as `0x${string}`,
@@ -233,7 +246,7 @@ export class TokenHandler {
               amount: amountInDecimals,
               decimals: token.decimals,
               networkId: this.networkConfig.id,
-              ...(request.includeMetadata ? {
+              ...(shouldIncludeMetadata ? {
                 hostname,
                 faviconUrl,
                 title
